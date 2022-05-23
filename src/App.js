@@ -3,13 +3,17 @@ import { useEffect, useState } from "react";
 import { Row, Col, Container, Card, ListGroup, Badge, Spinner, Accordion, Button } from "react-bootstrap";
 
 function App() {
-  const [data, setData] = useState({ status: false, data: {} });
+  const [data, setData] = useState({ status: false, data: {}, error: false });
   const [filterList, setFilterList] = useState({});
   const [cord, setcord] = useState({ lat: 18.516726, lon: 73.856255 });
 
   useEffect(() => {
-    getData()
-  }, []);
+    if (navigator.onLine) {
+      getData()
+    } else {
+      alert("Please Check Network Connection.")
+    }
+  }, [cord]);
 
   function getPosition() {
     if (navigator.geolocation) {
@@ -21,25 +25,19 @@ function App() {
 
   function successFunction(position) {
     var lat = position.coords.latitude;
-    var long = position.coords.longitude;
-    getData(lat, long)
-    // console.log('Your latitude is :' + lat + ' and longitude is ' + long);
+    var lon = position.coords.longitude;
+    setcord({ lat, lon })
+    getData()
   }
 
-  async function getData(lat, long) {
-    let sendData = {}
-    if (lat && long) {
-      sendData = { lat, long }
-    } else {
-      sendData = { lat: cord.lat, long: cord.lon }
-    }
+  async function getData() {
     try {
-      let res = await fetch('https://api.openweathermap.org/data/2.5/forecast?lat='+sendData.lat+'&lon='+sendData.long+'&appid=<api_key>')
+      let res = await fetch('https://api.openweathermap.org/data/2.5/forecast?lat=' + cord.lat + '&lon=' + cord.lon + '&appid=<api_key>')
       let out = await res.json()
       if (out.cod === "200") {
         setData({ status: true, data: out, error: false })
         let temp = {}, newdate = 0
-        out.list.map(x => {
+        out.list.forEach(x => {
           newdate = String(new Date(x.dt_txt).toLocaleDateString())
           if (Object.keys(temp).includes(newdate)) {
             temp[newdate].push(x)
@@ -54,11 +52,10 @@ function App() {
       }
     } catch (error) {
       setData({ status: false, data: {}, error: true })
-      console.log(error)
     }
 
   }
-  
+
   return (
     <div>
       <Container>
@@ -66,9 +63,11 @@ function App() {
           <Col className="py-5">
             {
               !data.status ?
-                <Spinner animation="border" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </Spinner>
+                <div className="d-flex justify-content-center">
+                  <Spinner animation="border" role="status" >
+                    <span className="visually-hidden">Loading...</span>
+                  </Spinner>
+                </div>
                 :
                 <Card>
                   <Card.Header className="bg-white">
